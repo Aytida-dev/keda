@@ -26,7 +26,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -165,7 +165,7 @@ func (m *kafkaMetadata) Validate() error {
 
 func parsePartitionLimitation(partitionLimitationStr string) ([]int32, error) {
 	partitionLimitation := make([]int32, 0)
-	for _, part := range strings.Split(partitionLimitationStr, ",") {
+	for part := range strings.SplitSeq(partitionLimitationStr, ",") {
 		part = strings.TrimSpace(part)
 		if strings.Contains(part, "-") {
 			rangeParts := strings.Split(part, "-")
@@ -266,7 +266,7 @@ func (m *kafkaMetadata) parseOAuthParams() error {
 		m.scopes = strings.Split(m.ScopesStr, ",")
 		m.oauthExtensions = make(map[string]string)
 		if m.OAuthExtensionsStr != "" {
-			for _, ext := range strings.Split(m.OAuthExtensionsStr, ",") {
+			for ext := range strings.SplitSeq(m.OAuthExtensionsStr, ",") {
 				kv := strings.Split(ext, "=")
 				if len(kv) != 2 {
 					return errors.New("invalid OAuthBearer extension, must be of format key=value")
@@ -660,12 +660,7 @@ func (s *kafkaScaler) isActivePartition(pID int32) bool {
 	if s.metadata.PartitionLimitation == nil {
 		return true
 	}
-	for _, _pID := range s.metadata.PartitionLimitation {
-		if pID == _pID {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s.metadata.PartitionLimitation, pID)
 }
 
 func (s *kafkaScaler) getConsumerOffsets(topicPartitions map[string][]int32) (*sarama.OffsetFetchResponse, error) {
@@ -1002,9 +997,7 @@ func FindFactors(n int64) []int64 {
 		}
 	}
 
-	sort.Slice(factors, func(i, j int) bool {
-		return factors[i] < factors[j]
-	})
+	slices.Sort(factors)
 
 	return factors
 }
